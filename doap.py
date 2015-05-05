@@ -13,6 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import os
 from rdflib import Graph
 from xml.etree import ElementTree
 import requests
@@ -35,27 +36,27 @@ class LocationsFile:
 
     def __init__(self, path):
         self.path = path
+        dir = os.path.dirname(path)
         self.locations = []      
         r = requests.get(path) #TODO: in the real site path would refer to a local file      
         #tree = ElementTree.parse(path)
         tree = ElementTree.fromstring(r.text)
         for location in tree.findall("location"):
-            self.locations.append(location)
+            if location.text.startswith("http://"):
+                self.locations.append(location.text)
+            else:
+                self.locations.append("%s/%s" % (dir, location.text))
 
     def __len__(self):
         return len(self.locations)          
 
     def __iter__(self):
-        return self
-
-    def next(self):
-        pass
+        return iter(self.locations)
             
 
 
 if __name__ == "__main__":
     doapsFile = LocationsFile(DOAPs)
-    print len(doapsFile)
 
     pmcsFile = LocationsFile(PMCs)
-    print len(pmcsFile)
+

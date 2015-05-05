@@ -13,17 +13,21 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+
 import os
+from urllib2 import HTTPError
 from rdflib import Graph
 from xml.etree import ElementTree
 import requests
 
+
 DOAPs = "https://svn.apache.org/repos/asf/infrastructure/site-tools/trunk/projects/files.xml"
 PMCs  = "https://svn.apache.org/repos/asf/infrastructure/site-tools/trunk/projects/pmc_list.xml"
 
+
 class DOAP:
 
-    def __int__(self, url):
+    def __init__(self, url):
         self.url = url
         self.graph = Graph()
         self.graph.load(url)
@@ -42,7 +46,7 @@ class LocationsFile:
         #tree = ElementTree.parse(path)
         tree = ElementTree.fromstring(r.text)
         for location in tree.findall("location"):
-            if location.text.startswith("http://"):
+            if location.text.startswith("http://") or location.text.startswith("https://"):
                 self.locations.append(location.text)
             else:
                 self.locations.append("%s/%s" % (dir, location.text))
@@ -56,7 +60,22 @@ class LocationsFile:
 
 
 if __name__ == "__main__":
-    doapsFile = LocationsFile(DOAPs)
 
-    pmcsFile = LocationsFile(PMCs)
+    for url in [DOAPs, PMCs]:
+        errors = 0
+        print
+        print "%s:" % url
+        print '-' * len(url)
+        print
+        locations = LocationsFile(url)
+        for location in locations:
+            try:
+                doap = DOAP(location)
+                print " - %s : %d RDF triples in the DOAP file" % (location, len(doap))
+            except HTTPError, e:
+                errors += 1
+                print " - %s : %s" % (location, str(e))
+        print
+        print "(%d errors)" % errors
+        print
 
